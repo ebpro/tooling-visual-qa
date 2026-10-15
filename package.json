@@ -1,0 +1,20 @@
+{
+  "name": "tooling-visual-qa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic visual-QA checker for rendered Quarto sites (ESM port of tier1-poc)",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "visual-qa": "src/cli.mjs"
+  },
+  "scripts": {
+    "selftest": "node selftest.mjs",
+    "check": "node src/cli.mjs check"
+  },
+  "devDependencies": {
+    "playwright": "1.64.1"
+  }
+}

@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>defect: broken-image</title>
+<!--
+  Planted defect (image.broken): img whose src does not exist on the served tree.
+  Expected: image.broken (naturalWidth=0) AND subresource.failed (the same-origin
+  404 response) — both faithful POC behaviour for one missing image.
+-->
+<p>Intentional defect: image referencing a missing local file.</p>
+<img src="nonexistent.png" alt="missing asset" width="200" height="120">

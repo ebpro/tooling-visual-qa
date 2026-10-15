@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>clean page</title>
+<!--
+  Clean fixture: well-formed page with one LEGITIMATE scroll region
+  (overflow:auto, 500px content in a 100px box). It must be soft-tagged in
+  scrollers.jsonl (isSelfScroller), NOT flagged as an overflow.scrollbox violation.
+-->
+<p>Well-formed page. The box below is an intentional scroller.</p>
+<!-- Live same-origin refs: directory link resolves to subdir/index.html (zero deadref). -->
+<p><a href="subdir/">live directory link</a> <a href="clean.html#legend">fragment link</a></p>
+<div id="legend" style="overflow:auto;height:100px;border:1px solid #999">
+  <div style="height:500px">500px of content inside a 100px tall auto-scroller.</div>
+</div>

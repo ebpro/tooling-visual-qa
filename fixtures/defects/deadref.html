@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>defect: deadref</title>
+<!--
+  Planted defects (link.deadref x3): same-origin references whose targets are absent
+  from the served tree.
+    - <a href="nope.html">      : dead anchor — browsers never fetch it, only the DOM scan finds it (source=dom).
+    - <script src="missing.js"> : dead fetched asset (source=dom; the 404 dedupes into the same row).
+    - <link href="ghost.css">   : dead fetched asset (same dedupe).
+  Expected: exactly 3 link.deadref rows. The script/link 404s ALSO emit companion
+  subresource.failed rows (faithful POC network-listener behaviour) — explicitly
+  tolerated in the selftest expectation.
+-->
+<p>Intentional defects: dead same-origin references.</p>
+<a href="nope.html">dead anchor target</a>
+<script src="missing.js"></script>
+<link rel="stylesheet" href="ghost.css">

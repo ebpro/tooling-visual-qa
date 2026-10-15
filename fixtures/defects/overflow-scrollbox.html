@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>defect: overflow-scrollbox</title>
+<!--
+  Planted defect (overflow.scrollbox): an 800px-wide content row inside a fixed
+  200x100 box with overflow:hidden → scrollWidth - clientWidth = 600 > 2px epsilon,
+  no self/ancestor auto-scroll scroller to absorb it.
+-->
+<p>Intentional defect: wide content clipped by a fixed non-scrolling box.</p>
+<div id="tight" style="width:200px;height:100px;overflow:hidden;background:#eee">
+  <div style="width:800px;height:60px;background:#ccc">800px-wide content row</div>
+</div>

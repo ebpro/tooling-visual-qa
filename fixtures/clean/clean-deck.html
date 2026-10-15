@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>clean deck</title>
+<!-- Clean fixture: Reveal 5 deck (CDN jsdelivr) whose slides fit the 1050x700
+     configured viewport, have text, and no fragments. Expect zero violations. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+</head>
+<body>
+<div class="reveal"><div class="slides">
+  <section><h2>Slide one</h2><p>Content comfortably inside the viewport.</p></section>
+  <section><h2>Slide two</h2><p>Also fits. Nothing overflows, nothing is blank.</p></section>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ width: 1050, height: 700, transition: "none", hash: false });</script>
+</body>
+</html>

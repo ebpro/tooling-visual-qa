@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>defect: mermaid-error</title>
+<!--
+  Planted defect (mermaid.resolution): leftover pre.mermaid carrying the mermaid error
+  SVG signature. SIMPLIFICATION (contract-approved): no mermaid CDN runtime is loaded;
+  the fixture hand-writes the exact DOM signature the checker keys on
+  (svg[aria-roledescription="error"] + text.error-text "Syntax error in text"),
+  which is what the POC verified against mermaid 11.12.0 / Quarto 1.10.18.
+  NOTE: the error text is placed INSIDE the svg viewport (real mermaid offsets it with
+  y=-100 inside a transformed <g>, which Chromium measures with SVG clientHeight=0 and
+  the overflow.scrollbox check then legitimately flags; the checker keys only on the
+  role-description + .error-text signature, so placement is irrelevant to the check).
+-->
+<p>Intentional defect: unresolved mermaid block with the error signature.</p>
+<pre class="mermaid"><svg aria-roledescription="error" width="300" height="60"><text class="error-text" x="10" y="30">Syntax error in text</text></svg></pre>

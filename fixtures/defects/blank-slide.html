@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>defect: blank-slide</title>
+<!-- Planted defect (slide.blank): a truly empty second section in a Reveal 5 deck
+     (CDN jsdelivr; selftest SKIPS slide fixtures if the CDN is unreachable). -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+</head>
+<body>
+<div class="reveal"><div class="slides">
+  <section><h2>Not blank</h2><p>This slide has visible text.</p></section>
+  <section></section>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ width: 1050, height: 700, transition: "none", hash: false });</script>
+</body>
+</html>

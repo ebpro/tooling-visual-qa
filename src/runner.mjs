@@ -34,6 +34,22 @@ function freePort() {
   });
 }
 
+/**
+ * Browser launch options, env-driven (v0.1.2, for CI container runs):
+ *   VQA_EXECUTABLE_PATH — absolute path to a Chromium-compatible binary
+ *     (e.g. /usr/local/bin/chrome-headless-shell inside the solen image).
+ *     Unset -> Playwright's own browser resolution (local dev behaviour unchanged).
+ *   VQA_BROWSER_ARGS  — comma-separated extra Chromium args
+ *     (e.g. "--no-sandbox,--disable-dev-shm-usage" when running as root).
+ */
+function launchOptions() {
+  const opts = {};
+  if (process.env.VQA_EXECUTABLE_PATH) opts.executablePath = process.env.VQA_EXECUTABLE_PATH;
+  const extra = (process.env.VQA_BROWSER_ARGS || "").split(",").map((a) => a.trim()).filter(Boolean);
+  if (extra.length) opts.args = extra;
+  return opts;
+}
+
 async function startServer(siteDir) {
   const port = await freePort();
   const proc = spawn("python3", ["-m", "http.server", String(port), "--directory", siteDir], {
@@ -190,7 +206,7 @@ export async function runCheck(opts) {
 
   try {
     const pages = listPages(SITE, BASE, opts.filter ? new RegExp(opts.filter) : null);
-    const browser = await chromium.launch();
+    const browser = await chromium.launch(launchOptions());
     for (const pg of pages) await runPage(browser, pg);
     await browser.close();
   } finally {

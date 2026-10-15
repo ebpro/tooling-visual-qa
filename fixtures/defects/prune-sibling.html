@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>defect: prune-sibling</title>
+<!--
+  v0.1.3 Rule-2 fixture: sibling of the prune_files/ directory with the SAME planted
+  broken image. Must still be scanned and flagged (proves the prune is surgical:
+  directory segments ending _files only, no collateral on the parent tree).
+-->
+<p>Intentional defect: image referencing a missing local file.</p>
+<img src="nonexistent.png" alt="missing asset" width="200" height="120">

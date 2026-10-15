@@ -74,7 +74,14 @@ function listPages(site, base, filterRe) {
   (function walk(dir) {
     for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, ent.name);
-      if (ent.isDirectory()) walk(full);
+      if (ent.isDirectory()) {
+        // v0.1.3 pre-S2 tuning: Quarto saves per-deck asset trees as <deck>_files/
+        // (vendored revealjs libs incl. speaker-view.html). DIRECTORY segments only.
+        // Corpus evidence (M1-verify): 19+2 such pages scanned on DEV-ADV/sample,
+        // 0 violations produced — pure runtime cost, no signal. Prune the subtree.
+        if (ent.name.endsWith("_files")) continue;
+        walk(full);
+      }
       else if (ent.name.endsWith(".html")) {
         const relPath = path.relative(site, full).split(path.sep).join("/");
         out.push({

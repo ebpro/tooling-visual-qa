@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>planted in *_files/ tree — must NOT be scanned</title>
+<!--
+  v0.1.3 Rule-2 fixture: lives under directory segment "prune_files" (ends _files).
+  Same planted defect as defects/broken-image.html; if the walk ever regresses and
+  scans this page it will emit violations + an unexpected-page FAIL and the
+  "_files-dir-not-scanned" assertion also fails explicitly.
+-->
+<p>Intentional defect that must be PRUNED from the page walk.</p>
+<img src="nonexistent.png" alt="missing asset" width="200" height="120">

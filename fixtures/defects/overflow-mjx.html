@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>defect: overflow-mjx</title>
+<!--
+  v0.1.3 Rule-1 fixture (MathJax scrollbox exclusion). Planted boxes:
+  - mjx-container#math: mjx-* custom element with 800px content → must NOT be caught (tagName rule)
+  - div#inner-mjx-plain: plain DIV nested INSIDE the mjx-container → must NOT be caught (ancestor rule)
+  - div#plain-scroller: identical geometry OUTSIDE any formula → MUST be caught (1 scrollbox row)
+  Expected: exactly ONE overflow.scrollbox row, selector containing #plain-scroller.
+-->
+<p>Intentional MathJax-layout noise + one real non-mjx scrollbox.</p>
+<mjx-container id="math" style="width:200px;height:100px;overflow:hidden;background:#eef">
+  <mjx-box>
+    <div style="width:800px;height:60px">800px formula content (mjx-container self scroller)</div>
+    <div id="inner-mjx-plain" style="width:200px;height:60px;overflow:hidden;background:#dee">
+      <div style="width:800px;height:40px">800px content inside a plain div nested in mjx</div>
+    </div>
+  </mjx-box>
+</mjx-container>
+<div id="plain-scroller" style="width:200px;height:100px;overflow:hidden;background:#eee">
+  <div style="width:800px;height:60px;background:#ccc">800px-wide content row (must be caught)</div>
+</div>

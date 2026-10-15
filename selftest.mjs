@@ -25,6 +25,8 @@ const EXPECT = {
   "defects/mermaid-error.html": ["mermaid.resolution"],
   "defects/blank-slide.html": ["slide.blank"],
   "defects/deadref.html": ["link.deadref", "subresource.failed"], // 3 deadref rows; script/link 404s emit companion subresource.failed (explicitly tolerated)
+  "defects/overflow-mjx.html": ["overflow.scrollbox"], // v0.1.3: mjx boxes pruned by rule 1; only the plain div row may remain (count-checked below)
+  "defects/prune-sibling.html": ["image.broken", "link.deadref", "subresource.failed"], // v0.1.3: sibling of prune_files/ — must still be scanned
   "clean/clean.html": [],        // scroller must land in scrollers.jsonl instead; subdir/ dir link must NOT deadref
   "clean/clean-deck.html": [],
   "clean/subdir/index.html": [],
@@ -89,6 +91,20 @@ export async function main({ out } = {}) {
     `${dr.length} row(s) targets=[${drTargets}] sources=[${dr.map((v) => v.detail.match(/source=(\w+)/)?.[1]).join(",")}]`);
   const drClean = violations.filter((v) => v.check === "link.deadref" && ["clean/clean.html", "clean/clean-deck.html", "clean/subdir/index.html"].includes(key(v.page)));
   verdict("deadref:clean-zero", drClean.length === 0, drClean.map((v) => `${key(v.page)} ${v.detail}`).join(" | ") || "0 row(s)");
+  // v0.1.3 rule 1: on defects/overflow-mjx.html exactly ONE scrollbox row — the planted
+  // plain div — and no scrollbox row anywhere carries an mjx selector (MathJax exclusion).
+  const mjxRows = (byPage["defects/overflow-mjx.html"] || []).filter((v) => v.check === "overflow.scrollbox");
+  verdict("overflow-mjx:1-row-plain-only",
+    mjxRows.length === 1 && mjxRows[0].selector.includes("#plain-scroller") && !mjxRows[0].selector.includes("mjx"),
+    `${mjxRows.length} row(s) selectors=[${mjxRows.map((v) => v.selector).join(" ")}]`);
+  const anyMjx = violations.filter((v) => v.check === "overflow.scrollbox" && /mjx/i.test(v.selector)).length;
+  verdict("overflow-mjx:no-mjx-rows-corpus", anyMjx === 0, `${anyMjx} mjx-selector scrollbox row(s)`);
+  // v0.1.3 rule 2: no page under a *_files directory segment may enter the walk,
+  // while the sibling planted page in the same directory IS scanned (see EXPECT row).
+  const walked = summary.pages.some((p) => key(p.url || p.page).startsWith("defects/prune_files/"));
+  const siblingScanned = summary.pages.some((p) => key(p.url || p.page) === "defects/prune-sibling.html");
+  verdict("_files-dir-not-scanned", !walked && siblingScanned,
+    `prune_files walked=${walked}, prune-sibling scanned=${siblingScanned}`);
   // every violation row has an existing screenshot file
   const badShots = violations.filter((v) => !v.screenshot || !fs.existsSync(path.join(OUT, v.screenshot)) || fs.statSync(path.join(OUT, v.screenshot)).size === 0);
   verdict("all-rows-have-screenshots", badShots.length === 0,

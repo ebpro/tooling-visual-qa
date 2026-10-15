@@ -47,6 +47,13 @@ export async function checkOverflowInPage(session, opts) {
       const r = el.getBoundingClientRect();
       if (r.width === 0 && r.height === 0) continue;
       if (el === document.documentElement || el === document.body) continue;
+      // v0.1.3 pre-S2 tuning (M1-verify evidence, DEV-ADV): MathJax v3 builds its
+      // equation layout from internal boxes (<mjx-container> and its mjx-* children)
+      // that carry tiny intentional overflow (scrollWidth>clientWidth glyph boxes);
+      // ~716/743 scrollbox rows on a real course site were mjx noise, none actionable.
+      // Exclude any candidate whose tagName is an mjx-* custom element OR that has an
+      // mjx-container ancestor (covers plain wrapper divs MathJax nests inside formulas).
+      if (el.tagName.startsWith("MJX-") || el.closest("mjx-container")) continue;
       const ox = el.scrollWidth - el.clientWidth > eps;
       const oy = el.scrollHeight - el.clientHeight > eps;
       if (!ox && !oy) continue;

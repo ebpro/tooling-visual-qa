@@ -36,6 +36,13 @@ node src/cli.mjs selftest [--out <dir>]          # or: node selftest.mjs
 - `summary.json` — per-page mermaid counts, violation totals, duration
 - `shots/` — evidence PNGs referenced by each violation row
 
+**Page walk:** a recursive scan of `*.html` under `--site`. Since v0.1.3, directories whose
+name ends in `_files` are pruned from the walk — these are Quarto's vendored per-deck asset
+trees (`<deck>_files/` holding the bundled reveal.js runtime and `speaker-view.html`), which
+produce no findings and only add scan time. The prune is on **directory segments only**; a
+file named `x_files.html` is still scanned, and `--filter` remains an orthogonal page-name
+regex.
+
 ## Check registry
 
 Implemented in `src/checks/*`, metadata in `src/registry.mjs`.
@@ -43,7 +50,7 @@ Implemented in `src/checks/*`, metadata in `src/registry.mjs`.
 | id | severity | threshold | what it detects |
 |---|---|---|---|
 | `mermaid.resolution` | error | zero-box ≤ 2 px | Mermaid blocks left unrendered: `svg[aria-roledescription="error"]` with "Syntax error in text" (culprit) and raw-source leftovers on later blocks (chain-abort collateral — `mermaid-init.js` renders sequentially without try/catch) |
-| `overflow.scrollbox` | error | 2 px epsilon | Content exceeding its box on non-slide pages; `overflow:auto` regions are soft-tagged in `scrollers.jsonl` instead of flagged |
+| `overflow.scrollbox` | error | 2 px epsilon | Content exceeding its box on non-slide pages; `overflow:auto` regions are soft-tagged in `scrollers.jsonl` instead of flagged. **Since v0.1.3** MathJax v3 internal layout boxes are excluded (candidates with an `MJX-*` tagName or an `mjx-container` ancestor) — on a real course site ~96 % of scrollbox rows were non-actionable formula-glyph noise |
 | `overflow.slide-viewport` | error | 2 px epsilon | Leaf Reveal slide taller/wider than the configured viewport (transform-independent layout metrics — stage scale does not inflate measurements); ≥100 px is real bleed, ≤10 px is noise-level |
 | `image.broken` | error | — | `<img>` with `naturalWidth = 0` |
 | `subresource.failed` | error | — | Same-origin subresource answered ≥400 or failed to load |
@@ -56,7 +63,7 @@ Implemented in `src/checks/*`, metadata in `src/registry.mjs`.
 a negative case, plus edge assertions (deadref exact targets, scroller soft-tagging,
 screenshot existence). The Reveal.js-based fixtures load the deck runtime from the
 jsdelivr CDN; when the CDN is unreachable the selftest **skips** those pages with a
-warning instead of failing red. Current local status: **14 PASS / 0 FAIL**.
+warning instead of failing red. Current local status: **19 PASS / 0 FAIL**.
 
 ## Parity note
 

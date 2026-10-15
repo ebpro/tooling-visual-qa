@@ -28,7 +28,10 @@ export const REFS = [
 /** Non-fetchable / out-of-scope shapes, checked on the RAW attribute value. */
 function skipRaw(raw) {
   if (!raw || /^[#?]/.test(raw)) return true; // fragment-only or query-only → resolves to this page
-  if (/^(?:https?:|mailto:|data:|javascript:|tel:|about:|blob:|ftp:|file:)/i.test(raw)) return true;
+  // v0.1.1 fix: do NOT blanket-skip https?: — Quarto's runtime rewrites many relative
+  // <a href> into ABSOLUTE SAME-ORIGIN URLs; those are in scope. resolveRef's
+  // u.origin !== BASE.origin check is the authoritative external guard.
+  if (/^(?:mailto:|data:|javascript:|tel:|about:|blob:|ftp:|file:)/i.test(raw)) return true;
   return false;
 }
 

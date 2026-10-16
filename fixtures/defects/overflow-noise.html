@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>defect: overflow-noise</title>
+<!--
+  v0.1.5 Rule fixture (scrollbox noise-class exclusions). Planted boxes:
+  - span.screen-reader-only: 1px + clip:rect classic sr-only (DEV-ADV: 150 rows) → must NOT be caught (computed-style rule)
+  - span.visually-hidden: absolute + clip-path:inset(50%) at readable size → must NOT be caught (clip-path branch)
+  - i.bi.bi-book: bootstrap-icon glyph box, 19px overflow:hidden (DEV-ADV: 37 rows) → must NOT be caught (class rule)
+  - pre#legit-code.source-code: overflow:auto with real content — the notebook-ci surviving
+    pattern (div#cb2.sourceCode) → MUST still land in scrollers.jsonl (intentional, not a defect)
+  Expected: ZERO overflow.scrollbox violation rows on this page; exactly the #legit-code row in scrollers.jsonl.
+-->
+<style>
+  .screen-reader-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0 }
+  .visually-hidden { position:absolute; width:200px; height:40px; overflow:hidden; clip-path:inset(50%); white-space:nowrap }
+  .bi { display:inline-block; width:19px; height:19px; overflow:hidden; line-height:1 }
+  pre.source-code { overflow:auto; width:200px; height:60px; background:#f4f4f4 }
+</style>
+<p>Sr-only / icon noise next to one legitimate styled scroller.</p>
+<span class="screen-reader-only">This long screen-reader text must never be reported as a scrollbox defect even though it overflows its 1px clip box in both axes by hundreds of pixels</span>
+<span class="visually-hidden">This long visually-hidden nowrap text exercises the clip-path branch at readable box size and must never be reported either</span>
+<i class="bi bi-book">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</i>
+<pre class="source-code" id="legit-code"><code>def main():
+    print("this intentionally scrollable code block is wide and tall enough to overflow both axes of the 200x60 pre box")
+    return 42
+# filler line to force vertical scroll in the styled pre region</code></pre>

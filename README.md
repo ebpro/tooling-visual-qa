@@ -50,7 +50,7 @@ Implemented in `src/checks/*`, metadata in `src/registry.mjs`.
 | id | severity | threshold | what it detects |
 |---|---|---|---|
 | `mermaid.resolution` | error | zero-box ≤ 2 px | Mermaid blocks left unrendered: `svg[aria-roledescription="error"]` with "Syntax error in text" (culprit) and raw-source leftovers on later blocks (chain-abort collateral — `mermaid-init.js` renders sequentially without try/catch) |
-| `overflow.scrollbox` | error | 2 px epsilon | Content exceeding its box on non-slide pages; `overflow:auto` regions are soft-tagged in `scrollers.jsonl` instead of flagged. **Since v0.1.3** MathJax v3 internal layout boxes are excluded (candidates with an `MJX-*` tagName or an `mjx-container` ancestor) — on a real course site ~96 % of scrollbox rows were non-actionable formula-glyph noise |
+| `overflow.scrollbox` | error | 2 px epsilon | Content exceeding its box on non-slide pages; `overflow:auto` regions are soft-tagged in `scrollers.jsonl` instead of flagged. **Since v0.1.3** MathJax v3 internal layout boxes are excluded (candidates with an `MJX-*` tagName or an `mjx-container` ancestor) — on a real course site ~96 % of scrollbox rows were non-actionable formula-glyph noise. **Since v0.1.5** two more noise classes are skipped entirely (no violation row, no scrollers row): (a) visually-hidden boxes, detected by **computed style** — `position:absolute/fixed` AND (a layout dimension ≤ `SR_ONLY_MAX_DIM_PX` = 1 px OR a non-default `clip`/`clip-path`); covers both the `clip:rect` sr-only and the `clip-path:inset` visually-hidden patterns without a class allowlist (DEV-ADV: 150 rows, all rect=1x1); (b) bootstrap-icon glyph boxes — `<i>` with class token `bi` (`BI_ICON_CLASS_TOKEN`), decorative 15–31 px pseudo-element boxes (DEV-ADV: 37 rows). Excluded candidates are invisible or decorative by construction; styled `overflow:auto` scrollers (code blocks, scrollable slides) are untouched |
 | `overflow.slide-viewport` | error | 2 px epsilon; 50 px warning floor | Leaf Reveal slide taller/wider than the configured viewport (transform-independent layout metrics — stage scale does not inflate measurements). **Since v0.1.4** rows with `max(|overflowX|,|overflowY|) < 50 px` carry per-row `severity: "warning"` (projector-invisible noise — notebook-ci iteration-1: residuals of 3/10/17/36/49 px); ≥ 50 px stays `"error"` |
 
 **Severity and gate consumers:** every `violations.jsonl` row *may* carry an explicit
@@ -73,10 +73,13 @@ per check; the floor constant lives in `src/checks/overflow.mjs`
 `fixtures/clean/` and `fixtures/defects/` cover every check id with a positive and
 a negative case, plus edge assertions (deadref exact targets, scroller soft-tagging,
 screenshot existence, v0.1.4 severity floor: planted 20 px slide-viewport row must be
-`severity=warning` while the 500 px sibling stays `severity=error`). The Reveal.js-based
+`severity=warning` while the 500 px sibling stays `severity=error`, v0.1.5 noise classes:
+`defects/overflow-noise.html` plants clip-rect sr-only + clip-path visually-hidden +
+`bi` icon boxes that must produce ZERO rows, alongside a planted `overflow:auto` code
+block that must survive in `scrollers.jsonl`). The Reveal.js-based
 fixtures load the deck runtime from the jsdelivr CDN; when the CDN is unreachable the
 selftest **skips** those pages with a warning instead of failing red.
-Current local status: **23 PASS / 0 FAIL**.
+Current local status: **27 PASS / 0 FAIL**.
 
 ## Parity note
 

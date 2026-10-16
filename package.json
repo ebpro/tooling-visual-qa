@@ -1,6 +1,6 @@
 {
   "name": "tooling-visual-qa",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "description": "Deterministic visual-QA checker for rendered Quarto sites (ESM port of tier1-poc)",

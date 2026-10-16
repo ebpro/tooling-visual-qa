@@ -20,6 +20,25 @@ export const EPSILON_PX = 2; // POC epsilon
 export const SLIDE_VIEWPORT_WARNING_FLOOR_PX = 50;
 
 /**
+ * v0.1.5 noise-class exclusions for overflow.scrollbox (DEV-ADV M1 evidence,
+ * out-m1/dev-adv-v013): 150/218 remaining scrollbox rows were `span.screen-reader-only`
+ * (all rect=1x1 — the classic clip/1px sr-only pattern, invisible by construction) and
+ * 37/218 were `i.bi.*` bootstrap-icon glyph boxes (rect 15x15–31x31, empty decorative
+ * pseudo-element content). Neither class is actionable; gate=error must not be blocked
+ * by them. Excluded candidates are skipped ENTIRELY (no violation row, no scrollers row).
+ *
+ * Detection policy (evidence-driven):
+ *  - sr-only: COMPUTED-STYLE based (the probe already fetches style + rect): position
+ *    absolute/fixed AND (a layout dimension <= SR_ONLY_MAX_DIM_PX OR a non-default
+ *    clip/clip-path). Covers .screen-reader-only (clip: rect) and .visually-hidden
+ *    (clip-path: inset) without a class allowlist; a visible box is never suppressed.
+ *  - bootstrap icons: class-based by necessity — an <i class="bi ..."> glyph box has no
+ *    distinctive computed style; tag I + whitespace-delimited class token "bi".
+ */
+export const SR_ONLY_MAX_DIM_PX = 1;
+export const BI_ICON_CLASS_TOKEN = "bi";
+
+/**
  * Run the overflow evaluation inside the page (POC checkOverflowInPage, verbatim logic).
  * session: { page, url, violations, scrollers, addViolation, vId }
  * opts: { scope: 'deck' | 'doc', viewport: {width,height} | null }
@@ -27,7 +46,17 @@ export const SLIDE_VIEWPORT_WARNING_FLOOR_PX = 50;
  */
 export async function checkOverflowInPage(session, opts) {
   const { page, url, violations, scrollers, addViolation } = session;
-  const added = await page.evaluate(({ scope, viewport, startId, eps }) => {
+  const added = await page.evaluate(({ scope, viewport, startId, eps, srOnlyMaxDimPx, biToken }) => {
+    // v0.1.5 noise-class exclusions — see SCROLLER constants in module scope.
+    const biClassRe = new RegExp("(^|\\s)" + biToken + "(\\s|$)");
+    function isVisuallyHidden(el, cs, r) {
+      if (cs.position !== "absolute" && cs.position !== "fixed") return false;
+      return r.width <= srOnlyMaxDimPx || r.height <= srOnlyMaxDimPx ||
+        (!!cs.clip && cs.clip !== "auto") || (!!cs.clipPath && cs.clipPath !== "none");
+    }
+    function isBootstrapIcon(el) {
+      return el.tagName === "I" && typeof el.className === "string" && biClassRe.test(el.className.trim());
+    }
     function hasAxisScroller(el, axis) {
       for (let a = el.parentElement; a; a = a.parentElement) {
         const cs = getComputedStyle(a);
@@ -64,6 +93,10 @@ export async function checkOverflowInPage(session, opts) {
       // Exclude any candidate whose tagName is an mjx-* custom element OR that has an
       // mjx-container ancestor (covers plain wrapper divs MathJax nests inside formulas).
       if (el.tagName.startsWith("MJX-") || el.closest("mjx-container")) continue;
+      // v0.1.5: invisible sr-only boxes and decorative bootstrap-icon glyphs are
+      // never actionable scrollbox candidates — skip before classification so they
+      // appear in NEITHER violations.jsonl NOR scrollers.jsonl.
+      if (isVisuallyHidden(el, cs, r) || isBootstrapIcon(el)) continue;
       const ox = el.scrollWidth - el.clientWidth > eps;
       const oy = el.scrollHeight - el.clientHeight > eps;
       if (!ox && !oy) continue;
@@ -107,7 +140,8 @@ export async function checkOverflowInPage(session, opts) {
       }
     }
     return out;
-  }, { scope: opts.scope, viewport: opts.viewport, startId: session.vId, eps: EPSILON_PX });
+  }, { scope: opts.scope, viewport: opts.viewport, startId: session.vId, eps: EPSILON_PX,
+       srOnlyMaxDimPx: SR_ONLY_MAX_DIM_PX, biToken: BI_ICON_CLASS_TOKEN });
   session.vId += 1000;
   for (const d of added.defects)
     addViolation({

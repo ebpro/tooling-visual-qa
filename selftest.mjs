@@ -27,6 +27,7 @@ const EXPECT = {
   "defects/blank-slide.html": ["slide.blank"],
   "defects/deadref.html": ["link.deadref", "subresource.failed"], // 3 deadref rows; script/link 404s emit companion subresource.failed (explicitly tolerated)
   "defects/overflow-mjx.html": ["overflow.scrollbox"], // v0.1.3: mjx boxes pruned by rule 1; only the plain div row may remain (count-checked below)
+  "defects/overflow-noise.html": [], // v0.1.5: sr-only + bi-icon noise excluded; legit pre scroller lands in scrollers.jsonl (asserted below)
   "defects/prune-sibling.html": ["image.broken", "link.deadref", "subresource.failed"], // v0.1.3: sibling of prune_files/ — must still be scanned
   "clean/clean.html": [],        // scroller must land in scrollers.jsonl instead; subdir/ dir link must NOT deadref
   "clean/clean-deck.html": [],
@@ -100,6 +101,21 @@ export async function main({ out } = {}) {
     `${mjxRows.length} row(s) selectors=[${mjxRows.map((v) => v.selector).join(" ")}]`);
   const anyMjx = violations.filter((v) => v.check === "overflow.scrollbox" && /mjx/i.test(v.selector)).length;
   verdict("overflow-mjx:no-mjx-rows-corpus", anyMjx === 0, `${anyMjx} mjx-selector scrollbox row(s)`);
+  // v0.1.5 noise-class exclusions: planted sr-only (clip-rect AND clip-path variants) and
+  // bootstrap-icon <i> boxes must produce NO scrollbox rows anywhere (violations or scrollers),
+  // while the planted overflow:auto code block (notebook-ci surviving pattern) stays in scrollers.jsonl.
+  const noiseSel = (s) => /screen-reader-only|visually-hidden/.test(s) || /^i\.bi(\.|$)/.test(s);
+  const noiseRows = violations.filter((v) => v.check === "overflow.scrollbox" && noiseSel(v.selector));
+  const noiseScrollers = scrollers.filter((s) => noiseSel(s.selector));
+  verdict("overflow-noise:sr-only-and-icons-suppressed",
+    noiseRows.length === 0 && noiseScrollers.length === 0,
+    `${noiseRows.length} violation + ${noiseScrollers.length} scrollers noise row(s)`);
+  const legitSc = scrollers.filter((s) => /#legit-code/.test(s.selector));
+  verdict("overflow-noise:legit-code-scroller-kept",
+    legitSc.length >= 1, `scrollers rows for #legit-code: ${legitSc.length} [${legitSc.map((s) => s.axis + "+" + s.overflowPx + "px").join(",")}]`);
+  verdict("overflow-noise:zero-violations-on-page",
+    (byPage["defects/overflow-noise.html"] || []).length === 0,
+    `${(byPage["defects/overflow-noise.html"] || []).length} row(s) on overflow-noise page`);
   // v0.1.4 severity floor: overflow.slide-viewport rows carry an explicit severity —
   // sub-50px residual (slide-overflow-minor.html, 20px planted) → "warning";
   // the 500px major fixture (slide-overflow.html) stays "error". Requires the CDN.

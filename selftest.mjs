@@ -21,6 +21,7 @@ const REVEAL_CDN_PROBE = "https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.j
 const EXPECT = {
   "defects/overflow-scrollbox.html": ["overflow.scrollbox"],
   "defects/slide-overflow.html": ["overflow.slide-viewport"],
+  "defects/slide-overflow-minor.html": ["overflow.slide-viewport"], // v0.1.4: 20px sub-floor residual → severity=warning (asserted below)
   "defects/broken-image.html": ["image.broken", "link.deadref", "subresource.failed"], // 404 img = all three rows (deadref: DOM scan finds the missing src)
   "defects/mermaid-error.html": ["mermaid.resolution"],
   "defects/blank-slide.html": ["slide.blank"],
@@ -31,7 +32,7 @@ const EXPECT = {
   "clean/clean-deck.html": [],
   "clean/subdir/index.html": [],
 };
-const SLIDE_PAGES = ["defects/slide-overflow.html", "defects/blank-slide.html", "clean/clean-deck.html"];
+const SLIDE_PAGES = ["defects/slide-overflow.html", "defects/slide-overflow-minor.html", "defects/blank-slide.html", "clean/clean-deck.html"];
 
 async function cdnReachable() {
   try {
@@ -99,6 +100,26 @@ export async function main({ out } = {}) {
     `${mjxRows.length} row(s) selectors=[${mjxRows.map((v) => v.selector).join(" ")}]`);
   const anyMjx = violations.filter((v) => v.check === "overflow.scrollbox" && /mjx/i.test(v.selector)).length;
   verdict("overflow-mjx:no-mjx-rows-corpus", anyMjx === 0, `${anyMjx} mjx-selector scrollbox row(s)`);
+  // v0.1.4 severity floor: overflow.slide-viewport rows carry an explicit severity —
+  // sub-50px residual (slide-overflow-minor.html, 20px planted) → "warning";
+  // the 500px major fixture (slide-overflow.html) stays "error". Requires the CDN.
+  if (cdn) {
+    const svRows = violations.filter((v) => v.check === "overflow.slide-viewport");
+    const minor = svRows.filter((v) => key(v.page) === "defects/slide-overflow-minor.html");
+    const major = svRows.filter((v) => key(v.page) === "defects/slide-overflow.html");
+    verdict("severity-floor:sub-50px-warning",
+      minor.length >= 1 && minor.every((v) => v.severity === "warning"),
+      `${minor.length} row(s) severities=[${minor.map((v) => v.severity + "@" + (v.detail.match(/overflowPx=(\d+)/)?.[1] ?? "?") + "px").join(",")}]`);
+    verdict("severity-floor:>=50px-error",
+      major.length >= 1 && major.every((v) => v.severity === "error"),
+      `${major.length} row(s) severities=[${major.map((v) => v.severity + "@" + (v.detail.match(/overflowPx=(\d+)/)?.[1] ?? "?") + "px").join(",")}]`);
+    verdict("severity-floor:no-severity-on-other-checks",
+      violations.every((v) => v.check === "overflow.slide-viewport" || v.severity === undefined),
+      violations.filter((v) => v.check !== "overflow.slide-viewport" && v.severity !== undefined).map((v) => v.check).join(",") || "0 stray severity field(s)");
+  } else {
+    skip("severity-floor:sub-50px-warning", "CDN unreachable");
+    skip("severity-floor:>=50px-error", "CDN unreachable");
+  }
   // v0.1.3 rule 2: no page under a *_files directory segment may enter the walk,
   // while the sibling planted page in the same directory IS scanned (see EXPECT row).
   const walked = summary.pages.some((p) => key(p.url || p.page).startsWith("defects/prune_files/"));

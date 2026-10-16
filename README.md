@@ -51,7 +51,18 @@ Implemented in `src/checks/*`, metadata in `src/registry.mjs`.
 |---|---|---|---|
 | `mermaid.resolution` | error | zero-box ≤ 2 px | Mermaid blocks left unrendered: `svg[aria-roledescription="error"]` with "Syntax error in text" (culprit) and raw-source leftovers on later blocks (chain-abort collateral — `mermaid-init.js` renders sequentially without try/catch) |
 | `overflow.scrollbox` | error | 2 px epsilon | Content exceeding its box on non-slide pages; `overflow:auto` regions are soft-tagged in `scrollers.jsonl` instead of flagged. **Since v0.1.3** MathJax v3 internal layout boxes are excluded (candidates with an `MJX-*` tagName or an `mjx-container` ancestor) — on a real course site ~96 % of scrollbox rows were non-actionable formula-glyph noise |
-| `overflow.slide-viewport` | error | 2 px epsilon | Leaf Reveal slide taller/wider than the configured viewport (transform-independent layout metrics — stage scale does not inflate measurements); ≥100 px is real bleed, ≤10 px is noise-level |
+| `overflow.slide-viewport` | error | 2 px epsilon; 50 px warning floor | Leaf Reveal slide taller/wider than the configured viewport (transform-independent layout metrics — stage scale does not inflate measurements). **Since v0.1.4** rows with `max(|overflowX|,|overflowY|) < 50 px` carry per-row `severity: "warning"` (projector-invisible noise — notebook-ci iteration-1: residuals of 3/10/17/36/49 px); ≥ 50 px stays `"error"` |
+
+**Severity and gate consumers:** every `violations.jsonl` row *may* carry an explicit
+`severity` field; today only `overflow.slide-viewport` rows do (per-row floor override).
+Gate consumers (e.g. the `_quarto-utils` `visual-check.yml` `gate.json` computation, which
+currently derives the error class from the imported `CHECK_REGISTRY` severities) **MUST use
+`row.severity` when present and fall back to the registry severity otherwise**
+(`row.severity ?? sev[row.check] ?? "error"`). The registry keeps a single base severity
+per check; the floor constant lives in `src/checks/overflow.mjs`
+(`SLIDE_VIEWPORT_WARNING_FLOOR_PX`) and is surfaced in `CHECK_REGISTRY` via
+`threshold.warningFloorPx` — one source of truth. `summary.json` totals include a
+`bySeverity` histogram (`{error, warning}`) under the same fallback rule.
 | `image.broken` | error | — | `<img>` with `naturalWidth = 0` |
 | `subresource.failed` | error | — | Same-origin subresource answered ≥400 or failed to load |
 | `link.deadref` | error | — | href/src target absent from the served tree (DOM scan finds dead `<a href>` the browser never prefetches; 404-response rows cover fetched assets) |
@@ -61,9 +72,11 @@ Implemented in `src/checks/*`, metadata in `src/registry.mjs`.
 
 `fixtures/clean/` and `fixtures/defects/` cover every check id with a positive and
 a negative case, plus edge assertions (deadref exact targets, scroller soft-tagging,
-screenshot existence). The Reveal.js-based fixtures load the deck runtime from the
-jsdelivr CDN; when the CDN is unreachable the selftest **skips** those pages with a
-warning instead of failing red. Current local status: **19 PASS / 0 FAIL**.
+screenshot existence, v0.1.4 severity floor: planted 20 px slide-viewport row must be
+`severity=warning` while the 500 px sibling stays `severity=error`). The Reveal.js-based
+fixtures load the deck runtime from the jsdelivr CDN; when the CDN is unreachable the
+selftest **skips** those pages with a warning instead of failing red.
+Current local status: **23 PASS / 0 FAIL**.
 
 ## Parity note
 

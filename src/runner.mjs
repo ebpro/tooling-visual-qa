@@ -227,7 +227,15 @@ export async function runCheck(opts) {
     const t = pageKey(v.page).split("/").includes("_slides") ? "slides" : "notes";
     byCheckType[`${v.check}/${t}`] = (byCheckType[`${v.check}/${t}`] || 0) + 1;
   }
-  summary.totals = { violations: violations.length, byCheck, byCheckAndPageType: byCheckType, intentionalScrollers: scrollers.length };
+  // v0.1.4: severity histogram for gate triage. Rows without an explicit severity fall
+  // back to the registry class (all registry severities are "error" today), matching the
+  // CI gate's `sev[r.check] ?? 'error'` default — so "error" here = registry-error + error rows.
+  const bySeverity = {};
+  for (const v of violations) {
+    const s = v.severity || "error";
+    bySeverity[s] = (bySeverity[s] || 0) + 1;
+  }
+  summary.totals = { violations: violations.length, byCheck, byCheckAndPageType: byCheckType, bySeverity, intentionalScrollers: scrollers.length };
   summary.mermaidExamined = summary.pages.reduce((a, p) => a + (p.mermaid ? p.mermaid.leftover + p.mermaid.rendered : 0), 0);
   summary.durationSec = ((Date.now() - t0) / 1000).toFixed(1);
   fs.writeFileSync(path.join(OUT, "violations.jsonl"), violations.map((v) => { const { id, ...rest } = v; return JSON.stringify(rest); }).join("\n") + (violations.length ? "\n" : ""));

@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>defect: slide-overflow-minor</title>
+<!-- Planted defect (overflow.slide-viewport, warning class): leaf section content forced
+     to 720px inside a Reveal deck configured 1050x700 → overflowPx=20 < 50px floor
+     (v0.1.4) → the violation row must carry severity="warning". The 500px sibling
+     fixture (slide-overflow.html) stays severity="error". Reveal 5 from CDN; if the
+     CDN is unreachable the selftest marks slide fixtures SKIPPED. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+<style>.slight{height:720px;background:#dfd}</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+  <section><h2>Slide that fits</h2><p>Short content, within the configured viewport.</p></section>
+  <section><div class="slight">Forced 20px past the 700px configured viewport — sub-floor residual</div></section>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ width: 1050, height: 700, transition: "none", hash: false });</script>
+</body>
+</html>

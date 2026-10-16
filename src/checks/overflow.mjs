@@ -10,6 +10,16 @@
 export const EPSILON_PX = 2; // POC epsilon
 
 /**
+ * v0.1.4 severity floor (notebook-ci iteration-1 evidence): residuals under this many
+ * px on overflow.slide-viewport are projector-invisible noise → severity "warning"
+ * instead of "error". Only that check is floored; overflow.scrollbox stays error.
+ * Rows carry an explicit `severity` field so gate consumers can use row.severity
+ * when present (the registry's base severity "error" remains the fallback for
+ * sub-floor-free rows and all other checks — ONE source of truth: this constant).
+ */
+export const SLIDE_VIEWPORT_WARNING_FLOOR_PX = 50;
+
+/**
  * Run the overflow evaluation inside the page (POC checkOverflowInPage, verbatim logic).
  * session: { page, url, violations, scrollers, addViolation, vId }
  * opts: { scope: 'deck' | 'doc', viewport: {width,height} | null }
@@ -103,6 +113,12 @@ export async function checkOverflowInPage(session, opts) {
     addViolation({
       id: d.vqaId, page: url,
       check: d.kind === "slide-viewport" ? "overflow.slide-viewport" : "overflow.scrollbox",
+      // v0.1.4 severity floor — ONLY overflow.slide-viewport: sub-floor residuals are
+      // warning, >= floor stays error. scrollbox rows carry no severity field and
+      // fall back to the registry severity (error) for gate consumers.
+      ...(d.kind === "slide-viewport"
+        ? { severity: d.overflowPx >= SLIDE_VIEWPORT_WARNING_FLOOR_PX ? "error" : "warning" }
+        : {}),
       selector: d.selector,
       detail: `axis=${d.axis} overflowPx=${d.overflowPx} rect=${d.rect.w}x${d.rect.h}`,
       screenshot: null,

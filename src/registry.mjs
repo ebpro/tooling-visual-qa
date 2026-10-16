@@ -28,10 +28,10 @@ export const CHECK_REGISTRY = [
   },
   {
     id: "overflow.slide-viewport",
-    severity: "error",
-    threshold: { epsilonPx: overflow.EPSILON_PX },
+    severity: "error", // base class; rows < warningFloorPx carry per-row severity "warning" (v0.1.4) — gate consumers MUST prefer row.severity when present
+    threshold: { epsilonPx: overflow.EPSILON_PX, warningFloorPx: overflow.SLIDE_VIEWPORT_WARNING_FLOOR_PX },
     tags: ["layout", "reveal", "slides"],
-    fixHint: "Leaf slide content is taller/wider than the Reveal configured viewport: split the slide, shrink content, or enable Reveal scroll — >=100px is real bleed, <=10px is noise-level.",
+    fixHint: "Leaf slide content is taller/wider than the Reveal configured viewport: split the slide, shrink content, or enable Reveal scroll — >=50px is error-class bleed, sub-50px residuals are projector-invisible noise (severity=warning rows).",
     impl: overflow,
   },
   {

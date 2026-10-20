@@ -24,10 +24,29 @@ Requires Node >= 18 (native `fetch` is used for the CDN reachability probe).
 # check a rendered site directory (served locally on a free port via
 # python3 -m http.server, unless --url points at an already-running server)
 node src/cli.mjs check --site <siteDir> [--url <url>] [--filter <regex>] --out <dir> [--mode <name>]
+                       [--viewport <WxH>] [--warning-floor-px <N>]
 
 # self-test over fixtures/ (no external site needed)
 node src/cli.mjs selftest [--out <dir>]          # or: node selftest.mjs
 ```
+
+### `check` audit dials
+
+Both flags are optional; **omitting them reproduces the pre-dial (v0.1.5) classification
+byte-for-byte** — the defaults below *are* the old hardcoded values.
+
+| flag | default | effect |
+|---|---|---|
+| `--viewport <WxH>` | `1280x800` | Browser page viewport in CSS px for every checked page (e.g. `1920x1080`). Positive integers only; invalid values exit 2 with a usage error. Note: `overflow.slide-viewport` still measures against the *Reveal-configured* deck viewport read from the page (`Reveal.getConfig()`), not this browser viewport — the dial changes the rendering context (scrollbox/blank/image evidence), not the deck comparison basis. |
+| `--warning-floor-px <N>` | `50` | `overflow.slide-viewport` severity floor: residuals `< N` px are classified `severity: "warning"` instead of `"error"`. `N` must be a number ≥ 0; invalid values exit 2 with a usage error. |
+
+Example — audit at a smaller projector-safe viewport with a stricter noise floor:
+
+```bash
+node src/cli.mjs check --site ./render --out ./out-vqa --viewport 1024x768 --warning-floor-px 30
+```
+
+`node src/cli.mjs check --help` lists all options with their defaults.
 
 `check` writes into `--out`:
 

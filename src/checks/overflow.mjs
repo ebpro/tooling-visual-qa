@@ -41,11 +41,13 @@ export const BI_ICON_CLASS_TOKEN = "bi";
 /**
  * Run the overflow evaluation inside the page (POC checkOverflowInPage, verbatim logic).
  * session: { page, url, violations, scrollers, addViolation, vId }
- * opts: { scope: 'deck' | 'doc', viewport: {width,height} | null }
+ * opts: { scope: 'deck' | 'doc', viewport: {width,height} | null, warningFloorPx?: number }
  * Returns the defect list (with vqaId); violations rows are already appended.
  */
 export async function checkOverflowInPage(session, opts) {
   const { page, url, violations, scrollers, addViolation } = session;
+  // CLI dial (--warning-floor-px): default = module constant (one source of truth).
+  const warningFloorPx = opts.warningFloorPx ?? SLIDE_VIEWPORT_WARNING_FLOOR_PX;
   const added = await page.evaluate(({ scope, viewport, startId, eps, srOnlyMaxDimPx, biToken }) => {
     // v0.1.5 noise-class exclusions — see SCROLLER constants in module scope.
     const biClassRe = new RegExp("(^|\\s)" + biToken + "(\\s|$)");
@@ -151,7 +153,7 @@ export async function checkOverflowInPage(session, opts) {
       // warning, >= floor stays error. scrollbox rows carry no severity field and
       // fall back to the registry severity (error) for gate consumers.
       ...(d.kind === "slide-viewport"
-        ? { severity: d.overflowPx >= SLIDE_VIEWPORT_WARNING_FLOOR_PX ? "error" : "warning" }
+        ? { severity: d.overflowPx >= warningFloorPx ? "error" : "warning" }
         : {}),
       selector: d.selector,
       detail: `axis=${d.axis} overflowPx=${d.overflowPx} rect=${d.rect.w}x${d.rect.h}`,

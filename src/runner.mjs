@@ -23,6 +23,13 @@ import * as deadrefChecks from "./checks/deadref.mjs";
 
 const SETTLE_MS = 900; // mermaid renders on window 'load' (POC)
 
+/**
+ * Browser page viewport used for every checked page (CSS px). Hardcoded since the
+ * POC port; now the DEFAULT behind `check --viewport <WxH>` (single source of truth —
+ * cli.mjs reads this constant for --help). Omitting the flag keeps v0.1.5 behaviour.
+ */
+export const DEFAULT_VIEWPORT = { width: 1280, height: 800 };
+
 function rel(u) { return u.replace(/^\/+/, "") || "index.html"; }
 function pageKey(u) { return rel(new URL(u).pathname); }
 
@@ -98,13 +105,18 @@ function listPages(site, base, filterRe) {
 
 /**
  * Run the visual-QA check over a site directory.
- * opts: { site, url?, filter?, out, mode? }  → writes <out>/{violations,scrollers}.jsonl,
- * <out>/summary.json, <out>/shots/*.png; returns the summary object.
+ * opts: { site, url?, filter?, out, mode?, viewport?, warningFloorPx? }  → writes
+ * <out>/{violations,scrollers}.jsonl, <out>/summary.json, <out>/shots/*.png;
+ * returns the summary object.
+ * viewport / warningFloorPx default to DEFAULT_VIEWPORT / SLIDE_VIEWPORT_WARNING_FLOOR_PX
+ * (omitting them reproduces pre-dial classification exactly).
  */
 export async function runCheck(opts) {
   const SITE = path.resolve(opts.site);
   const OUT = path.resolve(opts.out);
   const MODE = opts.mode || "check";
+  const VIEWPORT = opts.viewport ?? DEFAULT_VIEWPORT;
+  const WARNING_FLOOR_PX = opts.warningFloorPx ?? overflowChecks.SLIDE_VIEWPORT_WARNING_FLOOR_PX;
   const SHOTS = path.join(OUT, "shots");
   fs.rmSync(SHOTS, { recursive: true, force: true }); // stale shots must not outlive their violations
   fs.mkdirSync(SHOTS, { recursive: true });
@@ -139,7 +151,7 @@ export async function runCheck(opts) {
   }
 
   async function runPage(browser, pg) {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    const page = await browser.newPage({ viewport: VIEWPORT });
     const failed = imageChecks.watchSubresources(page, BASE);
     const session = {
       page, url: pg.url, BASE, SITE, addViolation, violations, scrollers, shot,
@@ -183,14 +195,14 @@ export async function runCheck(opts) {
               for (let i = 0; i < 100 && Reveal.nextFragment(); i++) await new Promise((r) => setTimeout(r, 5));
             });
             await page.waitForTimeout(80);
-            const defects = await overflowChecks.checkOverflowInPage(session, { scope: "deck", viewport: cfg });
+            const defects = await overflowChecks.checkOverflowInPage(session, { scope: "deck", viewport: cfg, warningFloorPx: WARNING_FLOOR_PX });
             await overflowChecks.attachDeckOverflowShots(session, defects, `slide${ih}-${iv}`);
             await mermaidChecks.checkZeroSizeSvgsDeck(session, ih, iv);
           }
         }
       } else {
         // notes: whole-document overflow + visible svg zero-size
-        const defects = await overflowChecks.checkOverflowInPage(session, { scope: "doc", viewport: null });
+        const defects = await overflowChecks.checkOverflowInPage(session, { scope: "doc", viewport: null, warningFloorPx: WARNING_FLOOR_PX });
         await overflowChecks.attachDocOverflowShots(session, defects);
         await mermaidChecks.checkZeroSizeSvgsDoc(session);
       }
